@@ -15,8 +15,8 @@ Create a new region owned by a player:
 ```java
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import tfagaming.projects.minecraft.homestead.managers.RegionManager;
-import tfagaming.projects.minecraft.homestead.models.Region;
+import me.tayebyassine.homestead.managers.RegionManager;
+import me.tayebyassine.homestead.models.Region;
 
 Player player = Bukkit.getPlayer("TFA_Gaming");
 Region region = RegionManager.createRegion("ExampleRegion", player);
@@ -29,8 +29,8 @@ Region region = RegionManager.createRegion("ExampleRegion", player);
 Look up a region by name (case-insensitive) or by its numeric ID:
 
 ```java
-import tfagaming.projects.minecraft.homestead.managers.RegionManager;
-import tfagaming.projects.minecraft.homestead.models.Region;
+import me.tayebyassine.homestead.managers.RegionManager;
+import me.tayebyassine.homestead.models.Region;
 
 // By name (case-insensitive)
 Region region = RegionManager.findRegion("ExampleRegion");
@@ -46,8 +46,8 @@ Region region = RegionManager.findRegion(309031393541763072L);
 Delete a region by ID after confirming it exists:
 
 ```java
-import tfagaming.projects.minecraft.homestead.managers.RegionManager;
-import tfagaming.projects.minecraft.homestead.models.Region;
+import me.tayebyassine.homestead.managers.RegionManager;
+import me.tayebyassine.homestead.models.Region;
 
 long regionId = 309031393541763072L;
 
@@ -65,8 +65,8 @@ Claim a chunk for a region. The return value is a `ChunkManager.Error`. `null` m
 
 ```java
 import org.bukkit.Chunk;
-import tfagaming.projects.minecraft.homestead.managers.ChunkManager;
-import tfagaming.projects.minecraft.homestead.models.Region;
+import me.tayebyassine.homestead.managers.ChunkManager;
+import me.tayebyassine.homestead.models.Region;
 
 Region region = ...;
 Chunk chunk = ...;
@@ -90,8 +90,8 @@ Remove a chunk from a region:
 
 ```java
 import org.bukkit.Chunk;
-import tfagaming.projects.minecraft.homestead.managers.ChunkManager;
-import tfagaming.projects.minecraft.homestead.models.Region;
+import me.tayebyassine.homestead.managers.ChunkManager;
+import me.tayebyassine.homestead.models.Region;
 
 Region region = ...;
 Chunk chunk = ...;
@@ -112,8 +112,8 @@ Invite players, revoke invites, and check invitation status:
 ```java
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import tfagaming.projects.minecraft.homestead.managers.InviteManager;
-import tfagaming.projects.minecraft.homestead.models.Region;
+import me.tayebyassine.homestead.managers.InviteManager;
+import me.tayebyassine.homestead.models.Region;
 
 Player target = Bukkit.getPlayer("test_account");
 Region region = ...;
@@ -144,8 +144,10 @@ boolean invited = InviteManager.isInvited(region, target);
 Read and modify bitwise flag values on a region:
 
 ```java
-import tfagaming.projects.minecraft.homestead.flags.*;
-import tfagaming.projects.minecraft.homestead.models.Region;
+import java.util.List;
+import me.tayebyassine.homestead.flags.FlagCalculator;
+import me.tayebyassine.homestead.flags.PlayerFlag;
+import me.tayebyassine.homestead.models.Region;
 
 Region region = ...;
 
@@ -153,21 +155,21 @@ Region region = ...;
 long playerFlags = region.getPlayerFlags();
 long worldFlags = region.getWorldFlags();
 
-// Get all flag names
-List<String> flagNames = PlayerFlags.getFlags();
+// Get all player flag names as they appear in the config
+List<String> flagNames = PlayerFlag.getFlags();
 
-// Get a specific flag value
-long flag = PlayerFlags.valueOf("break-blocks");
+// Resolve a config name to its bitmask value
+long flag = PlayerFlag.parse("break-blocks");
 
-// Modify flags
-long newFlags = FlagsCalculator.addFlag(playerFlags, PlayerFlags.BREAK_BLOCKS);
+// Modify flags — PlayerFlag is an enum, so OR in the bit you want
+long newFlags = playerFlags | PlayerFlag.BREAK_BLOCKS.getBitmask();
 // → Non-members CAN break blocks
 
-newFlags = FlagsCalculator.removeFlag(playerFlags, PlayerFlags.CONTAINERS);
+newFlags = FlagCalculator.removeFlag(newFlags, PlayerFlag.CONTAINERS);
 // → Non-members CANNOT open containers
 
 // Check if a flag is set
-if (FlagsCalculator.isFlagSet(playerFlags, PlayerFlags.PVP)) {
+if (FlagCalculator.isFlagSet(playerFlags, PlayerFlag.PVP)) {
     // PvP is allowed
 }
 
@@ -177,7 +179,11 @@ region.setPlayerFlags(newFlags);
 
 !!! warning "Don't Mix Flag Types"
 
-    Each flag class (`PlayerFlags`, `WorldFlags`, `ControlFlags`) has its own values. Don't use `WorldFlags` values for player flags.
+    Each flag class (`PlayerFlag`, `WorldFlag`, `ControlFlag`) has its own values. Don't use `WorldFlag` values for player flags.
+
+!!! note "The flags are enums, not constants classes"
+
+    `PlayerFlag.valueOf("break-blocks")` throws `IllegalArgumentException` — `valueOf` matches the Java constant name (`BREAK_BLOCKS`), not the config name. Use `PlayerFlag.parse("break-blocks")` to go from config name to bitmask, or `PlayerFlag.BREAK_BLOCKS.getBitmask()` for the constant.
 
 ---
 
@@ -188,7 +194,11 @@ Register a listener to react to Homestead events:
 ```java
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import tfagaming.projects.minecraft.homestead.api.events.*;
+import me.tayebyassine.homestead.api.events.chunk.ChunkClaimEvent;
+import me.tayebyassine.homestead.api.events.communication.RegionChatEvent;
+import me.tayebyassine.homestead.api.events.economy.BankDepositEvent;
+import me.tayebyassine.homestead.api.events.player.PlayerJoinRegionEvent;
+import me.tayebyassine.homestead.api.events.region.RegionCreateEvent;
 
 public class HomesteadListener implements Listener {
 
@@ -196,16 +206,18 @@ public class HomesteadListener implements Listener {
     public void onChunkClaim(ChunkClaimEvent event) {
         event.getRegion();  // The region
         event.getChunk();   // The chunk being claimed
+        event.setCancelled(true);  // ChunkClaimEvent is cancellable
     }
 
     @EventHandler
     public void onRegionCreate(RegionCreateEvent event) {
         event.getRegion();
+        event.getPlayer();  // OfflinePlayer
     }
 
     @EventHandler
     public void onPlayerJoinRegion(PlayerJoinRegionEvent event) {
-        event.getPlayer();
+        event.getPlayer();  // OfflinePlayer
         event.getRegion();
     }
 
@@ -217,18 +229,33 @@ public class HomesteadListener implements Listener {
 
     @EventHandler
     public void onRegionChat(RegionChatEvent event) {
-        event.getPlayer();
+        event.getPlayer();  // OfflinePlayer
         event.getMessage();
         event.getRegion();
     }
 }
 ```
 
+!!! warning "Events live in sub-packages"
+
+    `me.tayebyassine.homestead.api.events.*` only reaches `APIEvent` — every concrete event sits in a sub-package such as `api.events.chunk` or `api.events.region`. Import them individually, as above. See [Developer API](API.md#api-events) for the full mapping.
+
 ### Register Your Listener
 
 ```java
-public void onEnable() {
-    Bukkit.getPluginManager().registerEvents(new HomesteadListener(), this);
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.java.JavaPlugin;
+
+public final class MyPlugin extends JavaPlugin {
+
+    @Override
+    public void onEnable() {
+        Bukkit.getPluginManager().registerEvents(new HomesteadListener(), this);
+    }
 }
 ```
+
+!!! note "Depend on Homestead at runtime too"
+
+    Add `depend: [Homestead]` (or `softdepend: [Homestead]` if optional) to your `plugin.yml` so Bukkit loads Homestead before your plugin — otherwise the event classes will not be on the server when you register.
 

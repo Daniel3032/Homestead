@@ -92,6 +92,33 @@ If `/region borders` shows nothing, the problem is usually on the client side ra
 
 ---
 
+## For Developers
+
+### Can't Resolve the Homestead API Dependency
+
+**Cause:** GitHub Packages requires authentication, even for a public repository.
+
+Symptoms and fixes:
+
+| Message                                               | Meaning                                                             | Fix                                                                                                                                                     |
+|:------------------------------------------------------|:--------------------------------------------------------------------|:--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `Received status code 401 from server: Unauthorized`  | No credentials were sent                                            | Add the `credentials {}` block (Gradle) or a matching `<server>` entry (Maven). See [Developer API — Authentication](../Advanced/API.md#authentication) |
+| `Received status code 404 from server: Not Found`     | Token lacks the `read:packages` scope, or the coordinates are wrong | Regenerate the token with `read:packages`; confirm `me.tayebyassine.homestead:homestead:6.0.0.0:api`                                                    |
+| Maven sends an anonymous request despite a `<server>` | `<server>` `<id>` does not match the `<repository>` `<id>`          | Both must be `homestead-github`                                                                                                                         |
+| The dependency resolves but the classes are absent    | The classifier-less artifact is the shaded server jar               | Use the `api` classifier                                                                                                                                |
+
+Opening `https://maven.pkg.github.com/TayebYassine/Homestead` in a browser always returns `404` — that endpoint has no web interface. The package versions are listed at [github.com/TayebYassine/Homestead/packages/3276486](https://github.com/TayebYassine/Homestead/packages/3276486).
+
+### Code Won't Compile Against the API
+
+**Cause:** Stale package names in older guides or blog posts.
+
+The API lives under `me.tayebyassine.homestead.*`. Anything importing `tfagaming.projects.minecraft.homestead.*` predates the package rename and will not compile. Events also sit in sub-packages (`api.events.chunk`, `api.events.region`, …), so `import ...api.events.*;` does not bring them in.
+
+**See:** [API Examples](../Advanced/API%20Examples.md) for corrected imports.
+
+---
+
 ## Getting More Help
 
 If your issue is not listed here:

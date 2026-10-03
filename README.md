@@ -128,9 +128,38 @@ The following service providers have been verified and tested with VaultUnlocked
 
 ## Developer API
 
-Homestead exposes a public API so other plugins can manage regions, chunks, members, and flags programmatically and listen to Homestead events. All API versions are published on [GitHub Packages](https://github.com/TayebYassine/Homestead/packages/2787077/versions), and full JavaDoc is available online at [tayebyassine.github.io/Homestead/javadoc](https://tayebyassine.github.io/Homestead/javadoc/).
+Homestead exposes a public API so other plugins can manage regions, chunks, members, and flags programmatically and listen to Homestead events. All API versions are published on [GitHub Packages](https://github.com/TayebYassine/Homestead/packages/3276486/versions), and full JavaDoc is available online at [tayebyassine.github.io/Homestead/javadoc](https://tayebyassine.github.io/Homestead/javadoc/).
 
-To include the API with Maven, add the repository and dependency:
+### Authentication
+
+GitHub Packages requires authentication for **every** download — including public packages. A request without a token gets `401 Unauthorized`, which Gradle usually surfaces as `Could not resolve ... 401`, so this step is not optional.
+
+Create a [personal access token](https://github.com/settings/tokens/new) with the **`read:packages`** scope. A token without that scope returns `404 Not Found` instead, which makes the package look like it does not exist.
+
+**Maven**: Add a `<server>` to `~/.m2/settings.xml`. Its `<id>` must match the `<id>` of the `<repository>` below, or Maven silently ignores it:
+
+```xml
+<settings>
+  <servers>
+    <server>
+      <id>homestead-github</id>
+      <username>YOUR_GITHUB_USERNAME</username>
+      <password>YOUR_PERSONAL_ACCESS_TOKEN</password>
+    </server>
+  </servers>
+</settings>
+```
+
+**Gradle**: Put the credentials in `~/.gradle/gradle.properties` so they never reach version control, then bind them to the repository in your build script (see below):
+
+```properties
+GitHubPackagesUsername=YOUR_GITHUB_USERNAME
+GitHubPackagesPassword=YOUR_PERSONAL_ACCESS_TOKEN
+```
+
+### Maven
+
+Add the repository and dependency:
 
 ```xml
 <repository>
@@ -147,17 +176,27 @@ To include the API with Maven, add the repository and dependency:
 </dependency>
 ```
 
-To include the API with Gradle:
+### Gradle
 
 ```kotlin
 repositories {
-    maven("https://maven.pkg.github.com/TayebYassine/Homestead")
+    maven {
+        url = uri("https://maven.pkg.github.com/TayebYassine/Homestead")
+        credentials {
+            username = providers.gradleProperty("GitHubPackagesUsername").orNull
+            password = providers.gradleProperty("GitHubPackagesPassword").orNull
+        }
+    }
 }
 
 dependencies {
     compileOnly("me.tayebyassine.homestead:homestead:6.0.0.0:api")
 }
 ```
+
+Always use the `api` classifier — the classifier-less artifact is the shaded server jar, not the API you compile against.
+
+See the [Developer API docs](https://tayebyassine.github.io/Homestead/Advanced/API/) for the full event list, troubleshooting, and [usage examples](https://tayebyassine.github.io/Homestead/Advanced/API%20Examples/).
 
 ## Metrics
 
