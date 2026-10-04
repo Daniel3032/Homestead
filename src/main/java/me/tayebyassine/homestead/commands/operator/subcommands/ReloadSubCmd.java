@@ -1,6 +1,7 @@
 package me.tayebyassine.homestead.commands.operator.subcommands;
 
 import me.tayebyassine.homestead.Homestead;
+import me.tayebyassine.homestead.borders.ChunkBorder;
 import me.tayebyassine.homestead.commands.CommandSenderType;
 import me.tayebyassine.homestead.commands.SubCommandBuilder;
 import me.tayebyassine.homestead.logs.Logger;
@@ -28,6 +29,8 @@ public final class ReloadSubCmd extends SubCommandBuilder {
 
         try {
             Resources.load(instance);
+
+            ChunkBorder.stopAll();
 
             Messages.send(sender, "commands.op_reload.1");
         } catch (Exception e) {

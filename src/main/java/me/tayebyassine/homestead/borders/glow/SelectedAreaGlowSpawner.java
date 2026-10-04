@@ -121,6 +121,26 @@ public final class SelectedAreaGlowSpawner {
     }
 
     /**
+     * Cancels every running glow task and removes all tracked entities synchronously.
+     * <p>
+     * Called while the plugin is being disabled, when no further tasks can be
+     * scheduled, so entities must be removed on the calling thread directly.
+     */
+    public static void shutdownAll() {
+        for (SelectedAreaGlowSpawner spawner : new ArrayList<>(ACTIVE_SPAWNERS.values())) {
+            if (spawner.task != null) {
+                spawner.task.cancel();
+            }
+        }
+        ACTIVE_SPAWNERS.clear();
+
+        for (UUID playerId : new ArrayList<>(PLAYER_ENTITIES.keySet())) {
+            LAST_SELECTION_HASH.remove(playerId);
+            GlowEntityCleanup.removeTagged(PLAYER_ENTITIES.remove(playerId));
+        }
+    }
+
+    /**
      * Checks if a glow task is currently running for the given player.
      *
      * @param player the player to check; null-safe
@@ -128,6 +148,31 @@ public final class SelectedAreaGlowSpawner {
      */
     public static boolean isTaskRunning(Player player) {
         return player != null && ACTIVE_SPAWNERS.containsKey(player.getUniqueId());
+    }
+
+    /**
+     * Hides every other player's border markers from the given viewer.
+     * <p>
+     * Marker visibility is only applied when entities spawn, so it must be re-applied
+     * whenever a player joins the server.
+     *
+     * @param viewer the player who must not see other players' borders; null-safe
+     */
+    public static void hideForeignTo(Player viewer) {
+        if (viewer == null || Homestead.getInstance() == null) return;
+
+        for (Map.Entry<UUID, Set<Entity>> entry : PLAYER_ENTITIES.entrySet()) {
+            if (entry.getKey().equals(viewer.getUniqueId())) continue;
+
+            for (Entity entity : entry.getValue()) {
+                try {
+                    if (entity != null && entity.isValid()) {
+                        viewer.hideEntity(Homestead.getInstance(), entity);
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+        }
     }
 
     /**
@@ -205,10 +250,22 @@ public final class SelectedAreaGlowSpawner {
             };
 
             if (IS_FOLIA) {
-                Bukkit.getOnlinePlayers().stream()
+                Player target = Bukkit.getOnlinePlayers().stream()
                         .filter(p -> p.getUniqueId().equals(playerId))
                         .findFirst()
-                        .ifPresent(p -> p.getScheduler().run(Homestead.getInstance(), t -> removeTask.run(), null));
+                        .orElse(null);
+
+                if (target != null) {
+                    target.getScheduler().run(Homestead.getInstance(), t -> removeTask.run(), null);
+                } else {
+                    for (Entity e : entities) {
+                        if (e == null) continue;
+
+                        e.getScheduler().run(Homestead.getInstance(), t -> {
+                            if (e.isValid()) e.remove();
+                        }, null);
+                    }
+                }
             } else {
                 Bukkit.getScheduler().runTask(Homestead.getInstance(), removeTask);
             }
@@ -329,17 +386,27 @@ public final class SelectedAreaGlowSpawner {
      * Refreshes the glowing effect on all existing border entities for this player.
      * <p>
      * Runs on the main thread (or region scheduler for Folia) to safely modify entities.
-     * Only updates entities that are still valid.
+     * Only updates entities that are still valid. If any tracked entity has disappeared
+     * (for example because its chunk was unloaded), the selection hash is dropped so the
+     * next iteration re-spawns the missing markers instead of silently skipping them.
      */
     private void refreshExistingEntities() {
         Set<Entity> entities = PLAYER_ENTITIES.get(player.getUniqueId());
         if (entities == null) return;
 
         Runnable refreshTask = () -> {
+            boolean missing = false;
+
             for (Entity entity : entities) {
                 if (entity != null && entity.isValid()) {
                     entity.setGlowing(true);
+                } else {
+                    missing = true;
                 }
+            }
+
+            if (missing) {
+                LAST_SELECTION_HASH.remove(player.getUniqueId());
             }
         };
 
@@ -399,14 +466,18 @@ public final class SelectedAreaGlowSpawner {
             bd.setGravity(false);
             bd.setSilent(true);
             bd.setGlowing(true);
+            bd.setPersistent(false);
 
             bd.getPersistentDataContainer().set(
                     new org.bukkit.NamespacedKey(Homestead.getInstance(), ENTITY_TAG),
                     PersistentDataType.BYTE, (byte) 1
             );
+            GlowEntityCleanup.tagViewer(bd, player.getUniqueId());
 
             applyGlowColor(bd, color);
         });
+
+        GlowEntityCleanup.hideFromEveryoneBut(display, player.getUniqueId());
 
         PLAYER_ENTITIES.computeIfAbsent(player.getUniqueId(), k -> ConcurrentHashMap.newKeySet())
                 .add(display);

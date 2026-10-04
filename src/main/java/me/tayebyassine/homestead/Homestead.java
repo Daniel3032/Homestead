@@ -3,6 +3,9 @@ package me.tayebyassine.homestead;
 import me.lucko.commodore.Commodore;
 import me.lucko.commodore.CommodoreProvider;
 import me.tayebyassine.homestead.api.events.APIEvent;
+import me.tayebyassine.homestead.borders.glow.ChunkGlowSpawner;
+import me.tayebyassine.homestead.borders.glow.GlowEntityCleanup;
+import me.tayebyassine.homestead.borders.glow.SelectedAreaGlowSpawner;
 import me.tayebyassine.homestead.commands.CommandRegistry;
 import me.tayebyassine.homestead.commands.brigadier.BrigadierCommands;
 import me.tayebyassine.homestead.database.Database;
@@ -14,6 +17,7 @@ import me.tayebyassine.homestead.events.RegionRent;
 import me.tayebyassine.homestead.events.RegionUpkeep;
 import me.tayebyassine.homestead.integrations.*;
 import me.tayebyassine.homestead.listeners.borders.BorderBreakListener;
+import me.tayebyassine.homestead.listeners.borders.GlowEntityEntitiesLoadListener;
 import me.tayebyassine.homestead.listeners.entities.ItemTransportingEntityValidateTargetListener;
 import me.tayebyassine.homestead.listeners.player.*;
 import me.tayebyassine.homestead.listeners.protection.BlockProtectionHandler;
@@ -381,6 +385,14 @@ public class Homestead extends JavaPlugin {
             Logger.debug("Done recording Copper Golems spawn locations.");
         });
 
+        runSyncTask(() -> {
+            int removed = GlowEntityCleanup.sweepLoadedWorlds();
+
+            if (removed > 0) {
+                Logger.info("Removed " + removed + " leftover glowing border entities from a previous session.");
+            }
+        });
+
         Logger.info("Ready, took " + (System.currentTimeMillis() - STARTED_AT) + " ms to load.");
 
         if (Resources.<ConfigFile>get(ResourceType.Config).isDiscordEnabled()) {
@@ -490,6 +502,9 @@ public class Homestead extends JavaPlugin {
      * </p>
      */
     public void onDisable() {
+        ChunkGlowSpawner.shutdownAll();
+        SelectedAreaGlowSpawner.shutdownAll();
+
         if (Homestead.database != null) {
             Logger.info("Closing database connection...");
 
@@ -563,6 +578,10 @@ public class Homestead extends JavaPlugin {
         registerEvent(new InventoryProtectionHandler());
         registerEvent(new PlayerRegionEnterAndExitListener());
         registerEvent(new PrivateRegionChatListener());
+
+        if (GlowEntityEntitiesLoadListener.isClassFound()) {
+            registerEvent(new GlowEntityEntitiesLoadListener());
+        }
     }
 
     /**

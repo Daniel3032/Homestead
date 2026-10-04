@@ -2,6 +2,7 @@ package me.tayebyassine.homestead.borders;
 
 import me.tayebyassine.homestead.borders.blocks.BorderBlockRenderer;
 import me.tayebyassine.homestead.borders.glow.ChunkGlowSpawner;
+import me.tayebyassine.homestead.borders.glow.GlowEntityCleanup;
 import me.tayebyassine.homestead.borders.glow.SelectedAreaGlowSpawner;
 import me.tayebyassine.homestead.borders.particles.ChunkParticlesSpawner;
 import me.tayebyassine.homestead.borders.particles.SelectedAreaParticlesSpawner;
@@ -12,6 +13,7 @@ import me.tayebyassine.homestead.models.SubArea;
 import me.tayebyassine.homestead.resources.ResourceType;
 import me.tayebyassine.homestead.resources.Resources;
 import me.tayebyassine.homestead.resources.files.RegionsFile;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
@@ -68,6 +70,9 @@ public final class ChunkBorder {
 
     /**
      * Stops all border visualizations for a player.
+     * <p>
+     * Only affects borders belonging to this player: their tasks are cancelled, their
+     * fake blocks are cleared, and their glow markers are removed from the world.
      *
      * @param player the player to stop borders for
      */
@@ -78,6 +83,19 @@ public final class ChunkBorder {
         SelectedAreaParticlesSpawner.cancelTask(player);
         ChunkGlowSpawner.cancelTask(player);
         SelectedAreaGlowSpawner.cancelTask(player);
+        GlowEntityCleanup.removeOwnedBy(player.getUniqueId());
+    }
+
+    /**
+     * Stops all border visualizations for every online player.
+     * <p>
+     * Used when the configuration is reloaded, so border tasks started with the
+     * previous settings cannot keep rendering after the border type has changed.
+     */
+    public static void stopAll() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            stop(player);
+        }
     }
 
     /**

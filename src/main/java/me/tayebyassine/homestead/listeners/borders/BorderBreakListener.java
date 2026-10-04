@@ -1,17 +1,27 @@
 package me.tayebyassine.homestead.listeners.borders;
 
+import me.tayebyassine.homestead.borders.ChunkBorder;
 import me.tayebyassine.homestead.borders.blocks.BorderBlockRenderer;
 import me.tayebyassine.homestead.borders.blocks.FakeBorderRegistry;
+import me.tayebyassine.homestead.borders.glow.ChunkGlowSpawner;
+import me.tayebyassine.homestead.borders.glow.GlowEntityCleanup;
+import me.tayebyassine.homestead.borders.glow.SelectedAreaGlowSpawner;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 
 /**
  * Protects the plugin's visual border blocks from being broken or dropped, and cleans up a player's
  * rendered borders when the block is removed or the player quits.
+ * <p>
+ * Also keeps glowing border markers private: they are hidden from players who join after the
+ * markers spawned, and removed from the world when a chunk loads so markers persisted by older
+ * plugin versions disappear as soon as the server touches the chunk holding them.
  */
 public final class BorderBreakListener implements Listener {
 
@@ -42,5 +52,17 @@ public final class BorderBreakListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerQuit(PlayerQuitEvent e) {
         BorderBlockRenderer.removeAll(e.getPlayer());
+        ChunkBorder.stop(e.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerJoin(PlayerJoinEvent e) {
+        ChunkGlowSpawner.hideForeignTo(e.getPlayer());
+        SelectedAreaGlowSpawner.hideForeignTo(e.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onChunkLoad(ChunkLoadEvent e) {
+        GlowEntityCleanup.removeTagged(e.getChunk().getEntities());
     }
 }
