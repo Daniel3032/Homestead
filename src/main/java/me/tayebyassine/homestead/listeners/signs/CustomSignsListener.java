@@ -13,7 +13,6 @@ import me.tayebyassine.homestead.resources.ResourceType;
 import me.tayebyassine.homestead.resources.Resources;
 import me.tayebyassine.homestead.resources.files.RegionsFile;
 import me.tayebyassine.homestead.util.java.Formatter;
-import me.tayebyassine.homestead.util.java.NumberUtils;
 import me.tayebyassine.homestead.util.minecraft.chat.Messages;
 import me.tayebyassine.homestead.util.minecraft.platform.PlatformBridge;
 import me.tayebyassine.homestead.util.minecraft.players.PlayerBank;
@@ -79,7 +78,7 @@ public final class CustomSignsListener implements Listener {
             return true;
         }
 
-        PriceValidation price = validatePrice(event, player, "selling.min-sell", "selling.max-sell");
+        PriceValidation price = validatePriceSell(event, player);
         if (price == null) return true;
 
         if (hasContentInLines(event, 3)) {
@@ -214,7 +213,7 @@ public final class CustomSignsListener implements Listener {
                 return;
             }
 
-            new RentConfirmationMenu(player, region, subArea, region.getRent());
+            new RentConfirmationMenu(player, region, subArea, existingRent);
         } catch (NumberFormatException e) {
             Messages.send(player, "signs.5");
         }
@@ -311,23 +310,33 @@ public final class CustomSignsListener implements Listener {
         return true;
     }
 
-    private PriceValidation validatePrice(SignChangeEvent event, Player player,
-                                          String minPath, String maxPath) {
-        String priceStr = getEventLine(event, 2).trim();
-        if (!NumberUtils.isValidDouble(priceStr)) {
-            Messages.send(player, "signs.13");
+    private PriceValidation validatePriceSell(SignChangeEvent event, Player player) {
+        double price = parseSellPrice(getEventLine(event, 2).trim());
+
+        if (Double.isNaN(price)) {
+            Messages.send(player, "signs.18");
             return null;
         }
 
-        double price = Double.parseDouble(priceStr);
-        double min = getRegionsConfig().getDouble(minPath);
-        double max = getRegionsConfig().getDouble(maxPath);
+        double min = getRegionsConfig().getDouble("selling.min-sell");
+        double max = getRegionsConfig().getDouble("selling.max-sell");
 
         if (price < min || price > max) {
-            Messages.send(player, "signs.5");
+            Messages.send(player, "signs.19", Formatter.getBalance(min), Formatter.getBalance(max));
             return null;
         }
         return new PriceValidation(price);
+    }
+
+    private double parseSellPrice(String priceStr) {
+        if (priceStr.isEmpty() || priceStr.contains("-")) return Double.NaN;
+
+        try {
+            double price = parseFormattedPrice(priceStr);
+            return Double.isFinite(price) ? price : Double.NaN;
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
     }
 
     private long parseDuration(String duration) {

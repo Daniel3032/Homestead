@@ -596,6 +596,8 @@ signs:
   15: '{__prefix__} &cBérelted a régiót, nem vásárolhatod meg, amíg a szerződés le nem jár.'
   16: '{__prefix__} &cA bérleti időtartamnak &6{0} &cés &6{1} &cnap között kell lennie!'
   17: '{__prefix__} &cA régió jelenleg ki van bérelve.'
+  18: '{__prefix__} &cAdj meg egy érvényes árat!'
+  19: '{__prefix__} &cAz árnak &6{0} &cés &6{1} &cközött kell lennie!'
 logs:
   0: 'Régió neve frissítve: ''{0}''.'
   1: 'Régió megjelenítendő neve frissítve: ''{0}''.'

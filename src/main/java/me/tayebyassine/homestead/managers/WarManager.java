@@ -628,11 +628,15 @@ public final class WarManager {
 
     /**
      * Returns {@code true} if the given player is a member or owner of any active war.
+     * <p>
+     * Returns {@code false} while the wars feature is disabled.
      *
      * @param player the player
      * @return {@code true} if in any war
      */
     public static boolean isPlayerInWar(OfflinePlayer player) {
+        if (!Resources.<RegionsFile>get(ResourceType.Regions).isWarsEnabled()) return false;
+
         UUID pid = player.getUniqueId();
         return getAll().stream().anyMatch(war ->
                 war.getRegions().stream().anyMatch(r -> {
@@ -645,13 +649,15 @@ public final class WarManager {
 
     /**
      * Returns {@code true} if the given player is a member or owner of the specified war.
+     * <p>
+     * Returns {@code false} while the wars feature is disabled.
      *
      * @param player the player
      * @param war    the war
      * @return {@code true} if in the war
      */
     public static boolean isPlayerInWar(OfflinePlayer player, War war) {
-        if (war == null) return false;
+        if (war == null || !Resources.<RegionsFile>get(ResourceType.Regions).isWarsEnabled()) return false;
 
         UUID pid = player.getUniqueId();
 
@@ -679,6 +685,10 @@ public final class WarManager {
      * @return {@code true} if in a war
      */
     public static boolean isRegionInWar(long regionId) {
+        if (!Resources.<RegionsFile>get(ResourceType.Regions).isWarsEnabled()) {
+            return false;
+        }
+
         return findWarByRegion(regionId) != null;
     }
 

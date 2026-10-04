@@ -598,6 +598,8 @@ signs:
   15: '{__prefix__} &cHas rentado la región, no puedes comprarla hasta que el contrato termine.'
   16: '{__prefix__} &cLa duración del alquiler debe estar entre &6{0} &cy &6{1} &cdías!'
   17: '{__prefix__} &cLa región está actualmente rentada.'
+  18: '{__prefix__} &c¡Por favor, introduce un precio válido!'
+  19: '{__prefix__} &c¡El precio debe estar entre &6{0} &cy &6{1}!'
 logs:
   0: Nombre de región actualizado a '{0}'.
   1: Nombre mostrado de región actualizado a '{0}'.

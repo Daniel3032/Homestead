@@ -629,6 +629,8 @@ signs:
   15: "{__prefix__} &cYou have rented the region, you cannot purchase it until the contract ends."
   16: "{__prefix__} &cRent duration must be between &6{0} &cand &6{1} &cdays!"
   17: "{__prefix__} &cThe region is currently rented."
+  18: "{__prefix__} &cPlease enter a valid price."
+  19: "{__prefix__} &cPrice must be between &6{0} &cand &6{1}!"
 
 logs:
   0: "Updated region name to '{0}'."

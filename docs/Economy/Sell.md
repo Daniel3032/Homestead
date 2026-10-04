@@ -24,7 +24,7 @@ Line 3: (Price: e.g. 15000)
 Line 4: (Leave empty)
 ```
 
-The plugin validates the price against the configured minimum and maximum, then fills in the region name and a formatted price. A buyer must not already be the owner, a trusted member, or banned from the region, and they must be able to afford the full price. Regions that are currently at war cannot be purchased. The sign breaks automatically once the sale completes.
+The price may be written plainly (`15000`) or with formatting (`$15,000`, `15k`, `2.5m`); anything else on that line is rejected with an error.
 
 ---
 
