@@ -151,6 +151,25 @@ public final class ColorTranslator {
         return string;
     }
 
+    /**
+     * Converts section-sign colour codes ({@code §c}, {@code §x§r§r§g§g§b§b}, {@code §#rrggbb})
+     * into the {@code &} form understood by {@link #translate(String)} and {@link #legacyToMiniMessage(String)}.
+     * Text coming from other plugins (PlaceholderAPI, Vault prefixes) often uses the section sign.
+     *
+     * @param input The string to convert
+     * @return The string with {@code &} colour codes
+     */
+    public static String sectionToAmpersand(String input) {
+        if (input == null || input.indexOf('§') == -1) return input;
+
+        input = input.replaceAll(
+                "§[xX]§([0-9A-Fa-f])§([0-9A-Fa-f])§([0-9A-Fa-f])§([0-9A-Fa-f])§([0-9A-Fa-f])§([0-9A-Fa-f])",
+                "&#$1$2$3$4$5$6"
+        );
+
+        return input.replace('§', '&');
+    }
+
     public static String stripForConsole(String input) {
         if (input == null) return null;
         input = input.replaceAll("<[^>]+>", "");

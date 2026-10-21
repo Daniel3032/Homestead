@@ -8,7 +8,10 @@ import me.tayebyassine.homestead.models.War;
 import me.tayebyassine.homestead.resources.ResourceType;
 import me.tayebyassine.homestead.resources.Resources;
 import me.tayebyassine.homestead.resources.files.LanguageFile;
+import me.tayebyassine.homestead.util.minecraft.chat.ColorTranslator;
+import me.tayebyassine.homestead.util.minecraft.plugins.IntegrationUtility;
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
@@ -239,14 +242,35 @@ public final class Formatter {
         );
     }
 
-    public static String formatPrivateChat(String regionName, String sender, String message) {
-        return applyPlaceholders(
-                Resources.<LanguageFile>get(ResourceType.Language).getFormatterPrivateChat(),
+    /**
+     * Format a private region chat message.
+     * <p>
+     * PlaceholderAPI placeholders in the format are applied for the sender, before
+     * {@code {region}}, {@code {sender}} and {@code {message}} are inserted, so players
+     * can't use placeholders in what they type or in region names.
+     *
+     * @param region  The region the message is sent to
+     * @param sender  The player who sent it
+     * @param message What the player typed
+     */
+    public static String formatPrivateChat(Region region, Player sender, String message) {
+        String format = Resources.<LanguageFile>get(ResourceType.Language).getFormatterPrivateChat();
+
+        if (format != null && IntegrationUtility.isEnabled(IntegrationUtility.Integration.PAPI)) {
+            format = ColorTranslator.sectionToAmpersand(me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(sender, format));
+        }
+
+        String displayName = region.getDisplayName();
+
+        format = applyPlaceholders(
+                format,
                 new Placeholder()
-                        .add("{region}", regionName)
-                        .add("{sender}", sender)
-                        .add("{message}", message)
+                        .add("{region}", region.getName())
+                        .add("{region-displayname}", displayName == null || displayName.isEmpty() ? region.getName() : displayName)
+                        .add("{sender}", sender.getName())
         );
+
+        return format.replace("{message}", message);
     }
 
     /**
