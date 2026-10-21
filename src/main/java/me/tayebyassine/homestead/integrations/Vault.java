@@ -5,13 +5,19 @@ import me.tayebyassine.homestead.integrations.vault.EconomyProvider;
 import me.tayebyassine.homestead.integrations.vault.LegacyVaultProvider;
 import me.tayebyassine.homestead.integrations.vault.PermissionsProvider;
 import me.tayebyassine.homestead.integrations.vault.VaultUnlockedProvider;
+import me.tayebyassine.homestead.logs.Logger;
 
 /**
  * The ancient Vault plugin, doesn't support Folia.
+ * <p>
+ * When VaultUnlocked is installed, each service is looked up on its modern API first.
+ * VaultUnlocked also ships the legacy Vault API, and many plugins (EssentialsX, LuckPerms...)
+ * still only register there, so if nothing is found on the modern API, the legacy one is used.
  */
 public class Vault {
 
     private static boolean IS_VAULTUNLOCKED_DETECTED = false;
+    private static boolean IS_LEGACY_VAULT_DETECTED = false;
 
     static {
         try {
@@ -21,50 +27,84 @@ public class Vault {
         } catch (ClassNotFoundException e) {
             IS_VAULTUNLOCKED_DETECTED = false;
         }
+
+        try {
+            Class.forName("net.milkbowl.vault.economy.Economy");
+            Class.forName("net.milkbowl.vault.permission.Permission");
+            IS_LEGACY_VAULT_DETECTED = true;
+        } catch (ClassNotFoundException e) {
+            IS_LEGACY_VAULT_DETECTED = false;
+        }
     }
 
     private VaultUnlockedProvider vaultUnlockedProvider;
     private LegacyVaultProvider legacyVaultProvider;
 
-    public Vault(Homestead plugin) {
+    private EconomyProvider economy;
+    private PermissionsProvider permissions;
 
+    public Vault(Homestead plugin) {
         if (isVaultUnlockedDetected()) {
             this.vaultUnlockedProvider = new VaultUnlockedProvider(plugin);
-        } else {
+        }
+
+        if (IS_LEGACY_VAULT_DETECTED) {
             this.legacyVaultProvider = new LegacyVaultProvider(plugin);
+        }
+
+        if (vaultUnlockedProvider != null) {
+            this.economy = vaultUnlockedProvider;
+            this.permissions = vaultUnlockedProvider;
+        } else {
+            this.economy = legacyVaultProvider;
+            this.permissions = legacyVaultProvider;
         }
     }
 
     public boolean setupEconomy() {
-        if (isVaultUnlockedDetected()) {
-            return vaultUnlockedProvider.setupEconomy();
-        } else {
-            return legacyVaultProvider.setupEconomy();
+        if (vaultUnlockedProvider != null && vaultUnlockedProvider.setupEconomy()) {
+            economy = vaultUnlockedProvider;
+            return true;
         }
+
+        if (legacyVaultProvider != null && legacyVaultProvider.setupEconomy()) {
+            economy = legacyVaultProvider;
+
+            if (vaultUnlockedProvider != null) {
+                Logger.warning("No Economy service provider found on the VaultUnlocked API, using the legacy Vault API instead.");
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     public boolean setupPermissions() {
-        if (isVaultUnlockedDetected()) {
-            return vaultUnlockedProvider.setupPermissions();
-        } else {
-            return legacyVaultProvider.setupPermissions();
+        if (vaultUnlockedProvider != null && vaultUnlockedProvider.setupPermissions()) {
+            permissions = vaultUnlockedProvider;
+            return true;
         }
+
+        if (legacyVaultProvider != null && legacyVaultProvider.setupPermissions()) {
+            permissions = legacyVaultProvider;
+
+            if (vaultUnlockedProvider != null) {
+                Logger.warning("No Permissions service provider found on the VaultUnlocked API, using the legacy Vault API instead.");
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     public EconomyProvider getEconomy() {
-        if (isVaultUnlockedDetected()) {
-            return vaultUnlockedProvider.getEconomy();
-        } else {
-            return legacyVaultProvider.getEconomy();
-        }
+        return economy;
     }
 
     public PermissionsProvider getPermissions() {
-        if (isVaultUnlockedDetected()) {
-            return vaultUnlockedProvider.getPermissions();
-        } else {
-            return legacyVaultProvider.getPermissions();
-        }
+        return permissions;
     }
 
     public boolean isEconomyReady() {
