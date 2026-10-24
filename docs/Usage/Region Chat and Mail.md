@@ -32,6 +32,31 @@ log-private-chat: true  # Log region chat to console
 
 When `log-private-chat` is `true`, every region chat message is also written to the server console for moderation.
 
+### Chat Format
+
+The region chat line is set by `formatters.private-chat` in the [language file](../Advanced/Language.md):
+
+```yaml
+formatters:
+  private-chat: "&2{region} &7- &e{sender}&7: &r{message}"
+```
+
+| Placeholder             | Value                                                    |
+|-------------------------|----------------------------------------------------------|
+| `{region}`              | The region's name                                        |
+| `{region-displayname}`  | The region's display name (falls back to its name)       |
+| `{sender}`              | The sender's username                                    |
+| `{message}`             | The message                                              |
+
+With PlaceholderAPI installed, any PlaceholderAPI placeholder can be used too, and is applied for the sender:
+
+```yaml
+formatters:
+  private-chat: "&2{region} &7- %vault_prefix%%player_displayname%&7: &r{message}"
+```
+
+Placeholders typed by players in their messages are not applied.
+
 Region chat can also be forwarded to Discord via webhook. See [Plugin Integrations](../Advanced/Integrations.md).
 
 ---

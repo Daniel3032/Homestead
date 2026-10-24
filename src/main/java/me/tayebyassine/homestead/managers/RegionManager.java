@@ -337,8 +337,10 @@ public final class RegionManager {
 
         if (owner != null && owner.isOnline()) receivers.add(owner.getPlayer());
 
+        String formatted = Formatter.formatPrivateChat(region, author, message);
+
         for (Player receiver : receivers) {
-            Messages.sendString(receiver, Formatter.formatPrivateChat(region.getName(), author.getName(), message));
+            Messages.sendString(receiver, formatted);
         }
 
         if (Resources.<RegionsFile>get(ResourceType.Regions).isLogPrivateChat()) {
