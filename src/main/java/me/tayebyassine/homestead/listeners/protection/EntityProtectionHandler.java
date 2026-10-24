@@ -170,6 +170,14 @@ public final class EntityProtectionHandler extends ProtectionHandler implements 
             checkPlayerFlag(player, chunk, location, PlayerFlag.BREAK_BLOCKS, cancel);
         } else if (entity instanceof Wither || entity instanceof WitherSkull) {
             checkWorldFlag(chunk, WorldFlag.WITHER_DAMAGE, cancel);
+        } else if (entity instanceof Projectile projectile) {
+            // Projectiles break chorus flowers, decorated pots, etc. Check the shooter,
+            // the same way onProjectileHitBreakableBlock does.
+            if (projectile.getShooter() instanceof Player shooter) {
+                checkPlayerFlag(shooter, chunk, location, PlayerFlag.BREAK_BLOCKS, cancel);
+            } else {
+                checkWorldFlag(chunk, WorldFlag.PROJECTILES, cancel);
+            }
         } else {
             checkWorldFlag(chunk, WorldFlag.ENTITY_GRIEFING, cancel);
         }
